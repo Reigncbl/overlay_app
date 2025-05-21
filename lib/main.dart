@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'home_page.dart';
 import 'overlay_widget.dart';
@@ -6,7 +7,27 @@ import 'overlay_widget.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Request overlay permission
+  const MethodChannel("overlay_channel").setMethodCallHandler((call) async {
+    debugPrint("Received method call from native: ${call.method}");
+    if (call.method == "showOverlay") {
+      final isGranted = await FlutterOverlayWindow.isPermissionGranted();
+      if (!isGranted) {
+        await FlutterOverlayWindow.requestPermission();
+      }
+
+      if (!await FlutterOverlayWindow.isActive()) {
+        await FlutterOverlayWindow.showOverlay(
+          height: 1000,
+          width: 1000,
+          enableDrag: true,
+          flag: OverlayFlag.defaultFlag,
+          alignment: OverlayAlignment.center,
+          overlayContent: "overlayMain",
+        );
+      }
+    }
+  });
+
   final isGranted = await FlutterOverlayWindow.isPermissionGranted();
   if (!isGranted) {
     await FlutterOverlayWindow.requestPermission();
