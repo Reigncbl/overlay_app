@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'overlay_state.dart';
 
 class OverlayWidget extends StatefulWidget {
-  const OverlayWidget({super.key});
+  final void Function(OverlayViewState)? onModeChange;
+
+  const OverlayWidget({super.key, this.onModeChange});
 
   @override
   State<OverlayWidget> createState() => _OverlayWidgetState();
@@ -27,11 +29,10 @@ class _OverlayWidgetState extends State<OverlayWidget> {
 
   void _toggleOverlayState() {
     if (OverlayStateController.currentView == OverlayViewState.full) {
-      OverlayStateController.switchToBubble();
+      widget.onModeChange?.call(OverlayViewState.bubble);
     } else {
-      OverlayStateController.switchToFull();
+      widget.onModeChange?.call(OverlayViewState.full);
     }
-    // Do NOT call FlutterOverlayWindow.showOverlay here!
   }
 
   @override
@@ -41,7 +42,7 @@ class _OverlayWidgetState extends State<OverlayWidget> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Material(
-        color: Colors.transparent,
+        color: isFull ? Colors.transparent : Colors.transparent,
         child: isFull ? _buildFullOverlay() : _buildBubble(),
       ),
     );
@@ -50,7 +51,8 @@ class _OverlayWidgetState extends State<OverlayWidget> {
   Widget _buildFullOverlay() {
     return Material(
       color: Colors.transparent,
-      child: Center(
+      child: Align(
+        alignment: Alignment(0, 1),
         child: Container(
           constraints: const BoxConstraints(
             minWidth: 350,
@@ -58,7 +60,6 @@ class _OverlayWidgetState extends State<OverlayWidget> {
             minHeight: 540,
             maxHeight: 550,
           ),
-
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
@@ -70,10 +71,8 @@ class _OverlayWidgetState extends State<OverlayWidget> {
               ),
             ],
           ),
-
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-
             children: [
               // Header
               Container(
@@ -86,8 +85,6 @@ class _OverlayWidgetState extends State<OverlayWidget> {
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(18),
                     topRight: Radius.circular(18),
-                    bottomLeft: Radius.circular(0),
-                    bottomRight: Radius.circular(0),
                   ),
                 ),
                 child: Row(
@@ -98,7 +95,7 @@ class _OverlayWidgetState extends State<OverlayWidget> {
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white, // Make text visible on blue
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -107,10 +104,8 @@ class _OverlayWidgetState extends State<OverlayWidget> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.blue,
-
                         shape: const CircleBorder(),
                       ),
-                      // icon: const Icon(Icons.close),
                       label: const Text('X'),
                     ),
                   ],
@@ -127,8 +122,6 @@ class _OverlayWidgetState extends State<OverlayWidget> {
                   decoration: BoxDecoration(
                     color: const Color(0xFFFDF6ED),
                     borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(0),
-                      topRight: Radius.circular(0),
                       bottomLeft: Radius.circular(18),
                       bottomRight: Radius.circular(18),
                     ),
@@ -236,21 +229,17 @@ class _OverlayWidgetState extends State<OverlayWidget> {
   }
 
   Widget _buildBubble() {
-    return Align(
-      alignment: Alignment.bottomRight,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 24, right: 16),
-        child: GestureDetector(
-          onTap: _toggleOverlayState,
-          child: Container(
-            width: 80,
-            height: 80,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.blue,
-            ),
-            child: const Icon(Icons.chat_bubble, color: Colors.white, size: 40),
+    return Center(
+      child: GestureDetector(
+        onTap: _toggleOverlayState,
+        child: Container(
+          width: 80,
+          height: 80,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.blue,
           ),
+          child: const Icon(Icons.chat_bubble, color: Colors.white, size: 40),
         ),
       ),
     );
