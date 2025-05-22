@@ -1,3 +1,5 @@
+# uvicorn lib.api:app --reload
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 from telethon import TelegramClient

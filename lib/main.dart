@@ -17,7 +17,7 @@ void main() async {
 
       if (!await FlutterOverlayWindow.isActive()) {
         await FlutterOverlayWindow.showOverlay(
-          height: 1600,
+          height: 2000,
           width: 1200,
           enableDrag: false,
           flag: OverlayFlag.defaultFlag,
