@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'overlay_state.dart'; // make sure this points to the updated file
 
 class OverlayWidget extends StatefulWidget {
   const OverlayWidget({super.key});
@@ -10,101 +10,113 @@ class OverlayWidget extends StatefulWidget {
 }
 
 class _OverlayWidgetState extends State<OverlayWidget> {
-  String _latestMessage = 'Loading latest message...';
-
   @override
   void initState() {
     super.initState();
-    _fetchLatestMessage();
+    OverlayStateController.overlayStateNotifier.addListener(_onStateChanged);
   }
 
-  Future<void> _fetchLatestMessage() async {
-    try {
-      final url = Uri.parse('http://10.0.2.2:8000/messages');
-      final Map<String, dynamic> requestBody = {
-        "phone": "9615365763", // Replace with the target phone without +63
-        "first_name": "Carlo", // Optional
-        "last_name": "Lorieta", // Optional
-      };
+  @override
+  void dispose() {
+    OverlayStateController.overlayStateNotifier.removeListener(_onStateChanged);
+    super.dispose();
+  }
 
-      final response = await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(requestBody),
+  void _onStateChanged() {
+    setState(() {});
+  }
+
+  void _toggleOverlayState() async {
+    if (OverlayStateController.currentView == OverlayViewState.full) {
+      OverlayStateController.switchToBubble();
+      await FlutterOverlayWindow.showOverlay(
+        height: 150,
+        width: 150,
+        alignment: OverlayAlignment.bottomRight,
+        enableDrag: false,
+        overlayContent: "overlayMain",
+        flag: OverlayFlag.defaultFlag,
       );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        if (data.containsKey("messages") &&
-            (data["messages"] as List).isNotEmpty) {
-          final firstMsg = data["messages"][0];
-          setState(
-            () =>
-                _latestMessage =
-                    'From ${firstMsg["from"]}: ${firstMsg["text"]}',
-          );
-        } else if (data.containsKey("error")) {
-          setState(() => _latestMessage = 'Error: ${data["error"]}');
-        } else {
-          setState(() => _latestMessage = 'No messages found.');
-        }
-      } else {
-        setState(
-          () =>
-              _latestMessage =
-                  'Failed to fetch message. Status: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      setState(() => _latestMessage = 'Error: $e');
+    } else {
+      OverlayStateController.switchToFull();
+      await FlutterOverlayWindow.showOverlay(
+        height: 1600,
+        width: 1200,
+        alignment: OverlayAlignment.center,
+        enableDrag: false,
+        overlayContent: "overlayMain",
+        flag: OverlayFlag.defaultFlag,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isFull = OverlayStateController.currentView == OverlayViewState.full;
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Material(
         color: Colors.transparent,
-        child: Center(
+        child: isFull ? _buildFullOverlay() : _buildBubble(),
+      ),
+    );
+  }
+
+  Widget _buildFullOverlay() {
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 800, minHeight: 1200),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Latest Telegram Message',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            SizedBox(height: 20),
+            Text(
+              'Loading latest message...',
+              style: TextStyle(fontSize: 18, color: Colors.black87),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBubble() {
+    return Align(
+      alignment: Alignment.bottomRight,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 24, right: 16),
+        child: GestureDetector(
+          onTap: _toggleOverlayState,
           child: Container(
-            constraints: const BoxConstraints(
-              minWidth: 800,
-              maxWidth: 1200,
-              minHeight: 1000,
-              maxHeight: 1200,
+            width: 80,
+            height: 80,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.blue,
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 12,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  'Latest Telegram Message',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  _latestMessage,
-                  style: const TextStyle(fontSize: 18, color: Colors.black87),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
+            child: const Icon(Icons.chat_bubble, color: Colors.white, size: 40),
           ),
         ),
       ),
